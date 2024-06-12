@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/ftl/dxmapd/dxmap"
+	"github.com/ftl/dxmapd/wsjtx"
 )
 
 var rootFlags = struct {
@@ -41,13 +42,24 @@ func init() {
 func run(ctx context.Context, cmd *cobra.Command, args []string) {
 	messages := dxmap.Run(ctx, rootFlags.websocket)
 
+	var wsjtxMessages <-chan any
+	if rootFlags.wsjtx != "" {
+		log.Printf("listening for wsjt-x messages on %v", rootFlags.wsjtx)
+		wsjtxMessages = wsjtx.Run(ctx, rootFlags.wsjtx)
+	} else {
+		wsjtxMessages = make(chan any)
+	}
+
 	ticker := time.NewTicker(5 * time.Second)
 
 loop:
 	for {
 		select {
 		case now := <-ticker.C:
-			messages <- dxmap.Gab{From: "dxmapd", To: "HamDXMap", Message: fmt.Sprintf("Its %v", now)}
+			_ = now
+			// messages <- dxmap.Gab{From: "dxmapd", To: "HamDXMap", Message: fmt.Sprintf("Its %v", now)}
+		case m := <-wsjtxMessages:
+			messages <- m
 		case <-ctx.Done():
 			break loop
 		}

@@ -31,7 +31,7 @@ type Gab struct {
 }
 
 func Run(ctx context.Context, address string) chan<- any {
-	messages := make(chan any)
+	messages := make(chan any, 1)
 
 	server := godxmap.NewServer(address)
 	go serveMessages(ctx, server, messages)
@@ -73,6 +73,7 @@ loop:
 }
 
 func serveMessage(m any, server *godxmap.Server) {
+	log.Printf("serving message: %+v", m)
 	switch message := m.(type) {
 	case LoggedCall:
 		server.ShowLoggedCall(message.Call, message.FrequencyKHz)
